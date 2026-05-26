@@ -116,6 +116,13 @@ Command-line launcher: `scom`.
 
 Current package version: `0.1.2`.
 
+On a managed Windows computer that blocks new executable wrappers, launch the
+application through the installed Python environment:
+
+```powershell
+C:\sweetchem-env\Scripts\python.exe -m sweet_chem_o_mine
+```
+
 ## Windows Portable Build
 
 Windows packaging configuration is stored in `packaging/windows/`. Build from a
