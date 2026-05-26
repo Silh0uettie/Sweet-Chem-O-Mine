@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.matplotlib-cache/
+.venv/
+build/
+dist/
+
+# User datasets and saved projects contain scientific input or derived data.
+*.scom
+*.csv
+*.xls
+*.xlsx
+tests/_ui_export_check.csv
