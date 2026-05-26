@@ -18,28 +18,6 @@ regions to compound values and rendered chemical structures.
 This repository contains the Python package and application source. It does not
 contain imported experimental datasets.
 
-## Quick Start on Windows
-
-Python 3.11 or later is required. On Windows, especially when your files are
-inside OneDrive or another synced folder, create the Python environment in a
-short local path **before** installing the application:
-
-```powershell
-py -3.11 -m venv C:\sweetchem-env
-C:\sweetchem-env\Scripts\python.exe -m pip install --upgrade pip
-C:\sweetchem-env\Scripts\python.exe -m pip install "git+https://github.com/Silh0uettie/Sweet-Chem-O-Mine.git"
-C:\sweetchem-env\Scripts\python.exe -m sweet_chem_o_mine
-```
-
-This puts the environment and large scientific dependencies in
-`C:\sweetchem-env`, outside a cloud-synced project directory. Your uploaded
-tables and saved `.scom` projects are not placed there automatically.
-
-On managed computers that block newly downloaded application executables, run
-the final command above through the installed Python environment. Do not use
-`python -m scom`: `scom` is a console command, while the Python module name is
-`sweet_chem_o_mine`.
-
 ## Features
 
 - Open `.csv`, `.xls`, and `.xlsx` tables, with worksheet selection for Excel files.
@@ -55,24 +33,37 @@ the final command above through the installed Python environment. Do not use
 
 ## Install from a Clone
 
-For development or working from a local clone, keep the environment outside
-the repository and install in editable mode:
+Python 3.11 or later is required. Clone the repository, then create an
+environment outside the repository before installing the application.
+
+### Windows
+
+Using a user-local application-data folder keeps the environment out of a
+cloud-synced repository and avoids hard-coded machine-specific paths:
 
 ```powershell
 git clone https://github.com/Silh0uettie/Sweet-Chem-O-Mine.git
 Set-Location Sweet-Chem-O-Mine
-py -3.11 -m venv C:\sweetchem-env
-C:\sweetchem-env\Scripts\python.exe -m pip install --upgrade pip
-C:\sweetchem-env\Scripts\python.exe -m pip install -e .
-C:\sweetchem-env\Scripts\python.exe -m sweet_chem_o_mine
+$venv = Join-Path $env:LOCALAPPDATA "SweetChemOMine\venv"
+py -3.11 -m venv $venv
+& "$venv\Scripts\python.exe" -m pip install --upgrade pip
+& "$venv\Scripts\python.exe" -m pip install -e .
+& "$venv\Scripts\python.exe" -m sweet_chem_o_mine
 ```
 
-On macOS or Linux:
+On managed computers that block newly downloaded application executables, use
+the last command above to start the software through Python. Do not use
+`python -m scom`: `scom` is a console command, while the Python module name is
+`sweet_chem_o_mine`.
+
+### macOS or Linux
 
 ```bash
+git clone https://github.com/Silh0uettie/Sweet-Chem-O-Mine.git
+cd Sweet-Chem-O-Mine
 python3 -m venv ~/.venvs/sweetchem
 ~/.venvs/sweetchem/bin/python -m pip install --upgrade pip
-~/.venvs/sweetchem/bin/python -m pip install .
+~/.venvs/sweetchem/bin/python -m pip install -e .
 ~/.venvs/sweetchem/bin/python -m sweet_chem_o_mine
 ```
 
@@ -144,24 +135,12 @@ Current package version: `0.1.2`.
 An unsigned Windows portable build is available through the
 **Build Windows Portable App** GitHub Actions workflow. Windows security policy
 on managed computers may prevent that portable application from starting.
-Use the Python-module quick start above when executable downloads are blocked.
+Use the Python-module launch command in the installation section when
+executable downloads are blocked.
 
 For local packaging on a computer that permits application builds, the
-configuration is stored in `packaging/windows/`. Build from a clean packaging
-environment rather than the development environment:
-
-```powershell
-python -m venv C:\sweetchem-build-env
-C:\sweetchem-build-env\Scripts\python.exe -m pip install . pyinstaller pillow
-.\packaging\windows\build_windows.ps1
-```
-
-The generated portable application is written outside the synced project
-folder:
-
-```text
-C:\sweetchem-release\windows\Sweet Chem O Mine\
-```
+configuration and build instructions are stored in
+[`packaging/windows/README.md`](packaging/windows/README.md).
 
 Managed computers may block newly generated unsigned executables. In that
 case, continue using the installed Python-package launcher, `scom`, or build
