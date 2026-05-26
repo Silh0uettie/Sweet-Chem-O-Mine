@@ -932,8 +932,15 @@ class MainWindow(QMainWindow):
         form = QFormLayout(dialog)
         title = QLineEdit(self.umap_style.title)
         color_scale = QComboBox()
-        color_scale.addItems(["RdYlGn_r", "viridis", "plasma", "coolwarm", "Blues", "Reds", "Greys"])
-        color_scale.setCurrentText(self.umap_style.color)
+        reversed_scale = self.umap_style.color.endswith("_r")
+        selected_scale = self.umap_style.color[:-2] if reversed_scale else self.umap_style.color
+        color_scales = ["RdYlGn", "viridis", "plasma", "coolwarm", "Blues", "Reds", "Greys"]
+        if selected_scale not in color_scales:
+            color_scales.append(selected_scale)
+        color_scale.addItems(color_scales)
+        color_scale.setCurrentText(selected_scale)
+        reverse_color_scale = QCheckBox("Reverse colour scale")
+        reverse_color_scale.setChecked(reversed_scale)
         dot_size = QSpinBox()
         dot_size.setRange(5, 200)
         dot_size.setValue(self.umap_style.marker_size)
@@ -958,6 +965,7 @@ class MainWindow(QMainWindow):
         edge_button.clicked.connect(choose_edge_color)
         form.addRow("Plot title:", title)
         form.addRow("Dot colour scale:", color_scale)
+        form.addRow("", reverse_color_scale)
         form.addRow("Dot size:", dot_size)
         form.addRow("Dot opacity:", opacity)
         form.addRow("", show_outline)
@@ -968,7 +976,7 @@ class MainWindow(QMainWindow):
         form.addRow(buttons)
         if dialog.exec() == QDialog.DialogCode.Accepted:
             self.umap_style.title = title.text().strip() or "Chemical Space UMAP"
-            self.umap_style.color = color_scale.currentText()
+            self.umap_style.color = color_scale.currentText() + ("_r" if reverse_color_scale.isChecked() else "")
             self.umap_style.marker_size = dot_size.value()
             self.umap_style.edge_color = selected_edge.name()
             self.umap_style.opacity = opacity.value()
