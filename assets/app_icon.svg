@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#102d52"/>
+      <stop offset="1" stop-color="#186c79"/>
+    </linearGradient>
+    <linearGradient id="liquid" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#55d7ba"/>
+      <stop offset="1" stop-color="#14a77c"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="100" fill="url(#bg)"/>
+  <circle cx="112" cy="135" r="20" fill="#ffce59"/>
+  <circle cx="403" cy="138" r="18" fill="#ffce59"/>
+  <circle cx="428" cy="331" r="21" fill="#ffce59"/>
+  <path d="M112 135L195 107L240 143M403 138L320 115L286 153M428 331L365 290" fill="none"
+        stroke="#ffce59" stroke-width="12" stroke-linecap="round" opacity=".9"/>
+  <path d="M214 90h84M232 90v104L151 340c-19 49 18 87 66 87h78c48 0 85-38 66-87l-81-146V90"
+        fill="none" stroke="#ffffff" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M183 327c36-24 75 27 112 0 18-13 32-19 40-18l20 45c12 31-11 54-43 54H200c-32 0-55-23-43-54z"
+        fill="url(#liquid)"/>
+  <circle cx="237" cy="275" r="12" fill="#bff6e6"/>
+  <circle cx="284" cy="300" r="9" fill="#bff6e6"/>
+  <circle cx="259" cy="246" r="7" fill="#bff6e6"/>
+</svg>

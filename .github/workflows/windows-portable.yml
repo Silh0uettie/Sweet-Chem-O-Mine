@@ -1,0 +1,40 @@
+name: Build Windows Portable App
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  windows-portable:
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install application and packager
+        run: python -m pip install . pyinstaller pillow
+
+      - name: Build portable Windows folder
+        shell: pwsh
+        run: |
+          $python = python -c "import sys; print(sys.executable)"
+          .\packaging\windows\build_windows.ps1 `
+            -Python $python `
+            -WorkPath "${{ runner.temp }}\scom-build" `
+            -DistPath "${{ runner.temp }}\scom-dist"
+
+      - name: Upload portable application
+        uses: actions/upload-artifact@v4
+        with:
+          name: Sweet-Chem-O-Mine-Windows-Portable
+          path: ${{ runner.temp }}\scom-dist\Sweet Chem O Mine
+          if-no-files-found: error

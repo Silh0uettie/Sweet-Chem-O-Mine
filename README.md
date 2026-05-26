@@ -114,4 +114,28 @@ Python import/module name: `sweet_chem_o_mine`.
 
 Command-line launcher: `scom`.
 
-Current package version: `0.1.1`.
+Current package version: `0.1.2`.
+
+## Windows Portable Build
+
+Windows packaging configuration is stored in `packaging/windows/`. Build from a
+clean packaging environment rather than the development environment:
+
+```powershell
+python -m venv C:\sweetchem-build-env
+C:\sweetchem-build-env\Scripts\python.exe -m pip install . pyinstaller pillow
+.\packaging\windows\build_windows.ps1
+```
+
+The generated portable application is written outside the synced project
+folder:
+
+```text
+C:\sweetchem-release\windows\Sweet Chem O Mine\
+```
+
+Managed computers may block newly generated unsigned executables. In that
+case, continue using the installed Python-package launcher, `scom`, or build
+the portable application through the **Build Windows Portable App** workflow
+on GitHub Actions, which supplies a downloadable Windows artifact without
+building an executable on the local managed computer.
