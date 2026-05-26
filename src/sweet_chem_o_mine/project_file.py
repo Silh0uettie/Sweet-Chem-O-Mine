@@ -46,7 +46,7 @@ def save_project(
 ) -> None:
     """Store reproducible input and analysis outputs in a portable zip container."""
     metadata = {
-        "format": "sweet-chem-mine-project",
+        "format": "sweet-chem-o-mine-project",
         "format_version": 1,
         "application_version": __version__,
         "saved_utc": datetime.now(timezone.utc).isoformat(),

@@ -29,7 +29,7 @@ Python 3.11 or later is required. From a cloned copy of this repository:
 python -m venv .venv
 python -m pip install --upgrade pip
 python -m pip install .
-python -m sweet_chem_mine
+python -m sweet_chem_o_mine
 ```
 
 On Windows, Qt installations in deeply nested cloud-synced paths can exceed
@@ -38,7 +38,7 @@ path limits. A short environment path is a useful workaround:
 ```powershell
 python -m venv C:\sweetchem-env
 C:\sweetchem-env\Scripts\python.exe -m pip install .
-C:\sweetchem-env\Scripts\python.exe -m sweet_chem_mine
+C:\sweetchem-env\Scripts\python.exe -m sweet_chem_o_mine
 ```
 
 For development, install the package in editable mode:
@@ -47,10 +47,17 @@ For development, install the package in editable mode:
 python -m pip install -e .
 ```
 
-The installed entry-point command is also available:
+The installed entry-point commands are also available:
 
 ```bash
-sweet-chem-mine
+scom
+sweet-chem-o-mine
+```
+
+The short launcher is:
+
+```bash
+scom
 ```
 
 ## Workflow
@@ -101,4 +108,10 @@ python -m unittest discover -s tests -v
 
 ## Version
 
-Current package version: `0.1.0`.
+Distribution package name: `sweet-chem-o-mine`.
+
+Python import/module name: `sweet_chem_o_mine`.
+
+Command-line launcher: `scom`.
+
+Current package version: `0.1.1`.

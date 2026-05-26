@@ -8,8 +8,8 @@ from unittest.mock import patch
 import numpy as np
 import pandas as pd
 
-from sweet_chem_mine.analysis import AnalysisSettings, ColumnMapping, run_analysis
-from sweet_chem_mine.project_file import load_project, save_project
+from sweet_chem_o_mine.analysis import AnalysisSettings, ColumnMapping, run_analysis
+from sweet_chem_o_mine.project_file import load_project, save_project
 
 
 class FastReducer:
