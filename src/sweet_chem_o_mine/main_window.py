@@ -10,7 +10,6 @@ from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.figure import Figure
 from matplotlib.path import Path as MplPath
 from matplotlib.widgets import LassoSelector
-from rdkit import Chem
 from rdkit.Chem import Draw
 from PySide6.QtCore import QByteArray, QEvent, QObject, QSettings, QSize, QThread, QTimer, Qt, Signal, Slot
 from PySide6.QtGui import QAction, QActionGroup, QColor, QImage, QPalette, QPainter, QPixmap, QResizeEvent
@@ -50,7 +49,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from .analysis import AnalysisResult, AnalysisSettings, ColumnMapping, run_analysis
+from .analysis import AnalysisResult, AnalysisSettings, ColumnMapping, parse_smiles_quietly, run_analysis
 from .data_io import excel_sheet_names, load_table
 from .project_file import PROJECT_SUFFIX, load_project, save_project
 
@@ -1511,7 +1510,7 @@ class MainWindow(QMainWindow):
         mols = []
         for smiles in visible["smiles"].astype(str):
             if smiles not in self._molecule_cache:
-                self._molecule_cache[smiles] = Chem.MolFromSmiles(smiles)
+                self._molecule_cache[smiles] = parse_smiles_quietly(smiles)
             mols.append(self._molecule_cache[smiles])
         legends = [
             f"{name}\n{value_label}: {value:.2f}"

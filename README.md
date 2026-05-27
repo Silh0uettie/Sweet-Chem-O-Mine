@@ -142,7 +142,7 @@ Python import/module name: `sweet_chem_o_mine`.
 
 Command-line launcher: `scom`.
 
-Current package version: `0.1.4`.
+Current package version: `0.1.5`.
 
 ## License
 

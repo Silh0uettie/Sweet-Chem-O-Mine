@@ -9,6 +9,12 @@ from rdkit import Chem, rdBase
 from rdkit.Chem import rdFingerprintGenerator
 
 
+def parse_smiles_quietly(smiles: str):  # type: ignore[no-untyped-def]
+    """Parse a SMILES string without forwarding RDKit diagnostics to the console."""
+    with rdBase.BlockLogs():
+        return Chem.MolFromSmiles(smiles)
+
+
 @dataclass(slots=True)
 class ColumnMapping:
     display_name: str
@@ -112,8 +118,7 @@ def run_analysis(
             reasons.append("Missing SMILES")
             mol = None
         else:
-            with rdBase.BlockLogs():
-                mol = Chem.MolFromSmiles(str(smiles).strip())
+            mol = parse_smiles_quietly(str(smiles).strip())
             if mol is None:
                 reasons.append("Invalid SMILES")
         if pd.isna(value):
