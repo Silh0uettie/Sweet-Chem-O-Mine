@@ -19,7 +19,7 @@ def load_table(path: str | Path, sheet_name: str | None = None) -> pd.DataFrame:
     path = Path(path)
     suffix = path.suffix.lower()
     if suffix == ".csv":
-        return pd.read_csv(path)
+        return pd.read_csv(path, dtype=object)
     if suffix in {".xls", ".xlsx"}:
-        return pd.read_excel(path, sheet_name=sheet_name)
+        return pd.read_excel(path, sheet_name=sheet_name, dtype=object)
     raise ValueError(f"Unsupported data file type: {suffix}")

@@ -201,7 +201,7 @@ class MainWindow(QMainWindow):
         self._analysis_thread: QThread | None = None
         self._analysis_worker: AnalysisWorker | None = None
         self._popout_windows: list[PopoutWindow] = []
-        self.areas_of_interest: dict[str, list[int]] = {}
+        self.areas_of_interest: dict[str, list[object]] = {}
         self._dirty = False
         self._loading_state = False
         application = QApplication.instance()
@@ -289,9 +289,9 @@ class MainWindow(QMainWindow):
         guide_action = QAction("&Quick Guide", self)
         guide_action.triggered.connect(self.show_quick_guide)
         help_menu.addAction(guide_action)
-        clear_temporary_action = QAction("Clear &Local Temporary Files...", self)
-        clear_temporary_action.triggered.connect(self.clear_local_temporary_files)
-        help_menu.addAction(clear_temporary_action)
+        clear_cache_action = QAction("Clear Session &Display Cache...", self)
+        clear_cache_action.triggered.connect(self.clear_session_display_cache)
+        help_menu.addAction(clear_cache_action)
         help_menu.addSeparator()
         about_action = QAction("&About Sweet Chem O' Mine", self)
         about_action.triggered.connect(self.show_about)
@@ -438,14 +438,14 @@ class MainWindow(QMainWindow):
             "5. Export AOIs or figures, or save the complete .scom project.",
         )
 
-    def clear_local_temporary_files(self) -> None:
+    def clear_session_display_cache(self) -> None:
         render_count = len(self._structure_render_cache)
         molecule_count = len(self._molecule_cache)
         self._structure_render_cache.clear()
         self._molecule_cache.clear()
         QMessageBox.information(
             self,
-            "Clear Local Temporary Files",
+            "Clear Session Display Cache",
             "Cleared Sweet Chem's current-session display cache:\n"
             f"- {render_count} rendered structure view(s)\n"
             f"- {molecule_count} parsed molecule(s)\n\n"
@@ -644,12 +644,15 @@ class MainWindow(QMainWindow):
             combo.currentTextChanged.connect(lambda _text: self._set_dirty())
         for combo in (self.name_column, self.smiles_column, self.value_column, self.stdev_column):
             combo.currentTextChanged.connect(self._mapping_column_changed)
+        self.metric_column.currentTextChanged.connect(self._analysis_settings_changed)
         self.value_column.currentTextChanged.connect(self._value_column_changed)
         self.value_axis_label.textChanged.connect(lambda _text: self._set_dirty())
         self.value_axis_label.editingFinished.connect(self._value_label_changed)
         for spinbox in (self.radius, self.bits, self.neighbors, self.min_dist, self.seed):
             spinbox.valueChanged.connect(lambda _value: self._set_dirty())
+            spinbox.valueChanged.connect(self._analysis_settings_changed)
         self.chirality.toggled.connect(lambda _checked: self._set_dirty())
+        self.chirality.toggled.connect(self._analysis_settings_changed)
         section_layout.addWidget(box)
         return section
 
@@ -735,9 +738,7 @@ class MainWindow(QMainWindow):
         if self.result is None or not self.selected_positions:
             self._clear_aoi_active_state()
             return
-        selected_rows = {
-            int(row) for row in self.result.embedding.iloc[self.selected_positions]["source_row"].tolist()
-        }
+        selected_rows = set(self.result.embedding.iloc[self.selected_positions]["source_row"].tolist())
         matching_names = [
             name
             for name, rows in self.areas_of_interest.items()
@@ -764,9 +765,7 @@ class MainWindow(QMainWindow):
         if not name:
             name = self._next_aoi_name()
             self.aoi_name.setText(name)
-        source_rows = [
-            int(row) for row in self.result.embedding.iloc[self.selected_positions]["source_row"].tolist()
-        ]
+        source_rows = self.result.embedding.iloc[self.selected_positions]["source_row"].tolist()
         self.areas_of_interest[name] = source_rows
         self._refresh_aoi_list()
         self.aoi_list.blockSignals(True)
@@ -794,7 +793,7 @@ class MainWindow(QMainWindow):
         self.selected_positions = [
             position
             for position, row in enumerate(self.result.embedding["source_row"])
-            if int(row) in rows
+            if row in rows
         ]
         self.aoi_name.setText(names[0] if len(names) == 1 else "")
         self._set_dirty()
@@ -1008,6 +1007,7 @@ class MainWindow(QMainWindow):
             self._set_dirty()
             if self.result is not None:
                 self._draw_umap()
+                self._refresh_popouts()
 
     def edit_bar_style(self) -> None:
         dialog = QDialog(self)
@@ -1140,7 +1140,7 @@ class MainWindow(QMainWindow):
                 self.selected_positions = [
                     position
                     for position, row in enumerate(self.result.embedding["source_row"])
-                    if int(row) in source_rows
+                    if row in source_rows
                 ]
                 self._draw_all_results()
                 self._update_excluded_preview()
@@ -1213,6 +1213,12 @@ class MainWindow(QMainWindow):
         self._redraw_value_label_changes()
 
     def _mapping_column_changed(self, _column: str) -> None:
+        self._invalidate_analysis_results("Column mapping changed. Run Analysis to display updated figures.")
+
+    def _analysis_settings_changed(self, _value=None) -> None:  # type: ignore[no-untyped-def]
+        self._invalidate_analysis_results("Analysis settings changed. Run Analysis to display updated figures.")
+
+    def _invalidate_analysis_results(self, message: str) -> None:
         if self._loading_state or self.result is None:
             return
         self.result = None
@@ -1220,7 +1226,7 @@ class MainWindow(QMainWindow):
         self._structure_render_cache.clear()
         self._clear_aoi_active_state()
         self._clear_results()
-        self.statusBar().showMessage("Column mapping changed. Run Analysis to display updated figures.")
+        self.statusBar().showMessage(message)
 
     def _value_label_changed(self) -> None:
         if not self.value_axis_label.text().strip():
@@ -1275,6 +1281,7 @@ class MainWindow(QMainWindow):
         self.progress_bar.setFormat("Starting... 0%")
         self.progress_bar.show()
         self.run_button.setEnabled(False)
+        self.settings_content.setEnabled(False)
         self._analysis_thread = QThread(self)
         self._analysis_worker = AnalysisWorker(
             self.data.copy(),
@@ -1296,6 +1303,11 @@ class MainWindow(QMainWindow):
 
     @Slot(int, str)
     def _analysis_progress(self, value: int, message: str) -> None:
+        if value == 70 and message.startswith("Calculating UMAP embedding"):
+            self.progress_bar.setRange(0, 0)
+            self.progress_bar.setFormat("Calculating UMAP embedding...")
+            return
+        self.progress_bar.setRange(0, 100)
         self.progress_bar.setValue(value)
         short_message = message.split(":", maxsplit=1)[0]
         self.progress_bar.setFormat(f"{value}% - {short_message}")
@@ -1308,6 +1320,7 @@ class MainWindow(QMainWindow):
         self._set_dirty()
         self._draw_all_results()
         self._update_excluded_preview()
+        self.progress_bar.setRange(0, 100)
         self.progress_bar.setValue(100)
         self.progress_bar.setFormat("100%")
         excluded = len(self.result.excluded)
@@ -1326,6 +1339,7 @@ class MainWindow(QMainWindow):
     @Slot()
     def _analysis_finished(self) -> None:
         self.run_button.setEnabled(True)
+        self.settings_content.setEnabled(True)
         self.progress_bar.hide()
         self._analysis_worker = None
         self._analysis_thread = None
@@ -1646,6 +1660,8 @@ class MainWindow(QMainWindow):
     def _refresh_popouts(self) -> None:
         for window in list(self._popout_windows):
             if window.view_kind == "umap" and window.figure is not None and window.canvas is not None:
+                if hasattr(window, "lasso_selector"):
+                    window.lasso_selector.disconnect_events()  # type: ignore[attr-defined]
                 if self.result is None:
                     self._show_empty_plot(window.figure, window.canvas, "Run analysis to display UMAP")
                 else:
@@ -1776,11 +1792,9 @@ class MainWindow(QMainWindow):
 
     def _write_project(self, path: Path) -> bool:
         assert self.data is not None
-        selected_rows: list[int] = []
+        selected_rows: list[object] = []
         if self.result is not None and self.selected_positions:
-            selected_rows = [
-                int(row) for row in self.result.embedding.iloc[self.selected_positions]["source_row"].tolist()
-            ]
+            selected_rows = self.result.embedding.iloc[self.selected_positions]["source_row"].tolist()
         try:
             save_project(
                 path,

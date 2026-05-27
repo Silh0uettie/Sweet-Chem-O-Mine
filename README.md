@@ -128,7 +128,7 @@ Python import/module name: `sweet_chem_o_mine`.
 
 Command-line launcher: `scom`.
 
-Current package version: `0.1.2`.
+Current package version: `0.1.3`.
 
 ## Windows Portable Build
 

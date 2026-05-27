@@ -1,14 +1,18 @@
 from __future__ import annotations
 
 import io
+import json
 import types
 import unittest
+from pathlib import Path
 from unittest.mock import patch
+from zipfile import ZIP_DEFLATED, ZipFile
 
 import numpy as np
 import pandas as pd
 
 from sweet_chem_o_mine.analysis import AnalysisSettings, ColumnMapping, run_analysis
+from sweet_chem_o_mine.data_io import load_table
 from sweet_chem_o_mine.project_file import load_project, save_project
 
 
@@ -91,6 +95,18 @@ class AnalysisAndProjectTests(unittest.TestCase):
         self.assertIn("Duplicate display name", reasons)
         self.assertIn("Missing or non-numeric error bar", reasons)
 
+    def test_table_import_requests_text_preserving_columns(self) -> None:
+        frame = pd.DataFrame({"name": ["0001"], "value": ["1.5"]})
+        with patch("sweet_chem_o_mine.data_io.pd.read_csv", return_value=frame) as read_csv:
+            loaded_csv = load_table("screen.csv")
+        with patch("sweet_chem_o_mine.data_io.pd.read_excel", return_value=frame) as read_excel:
+            loaded_excel = load_table("screen.xlsx", "Processed")
+
+        self.assertIs(loaded_csv, frame)
+        self.assertIs(loaded_excel, frame)
+        read_csv.assert_called_once_with(Path("screen.csv"), dtype=object)
+        read_excel.assert_called_once_with(Path("screen.xlsx"), sheet_name="Processed", dtype=object)
+
     def test_project_roundtrip_includes_data_and_embedding(self) -> None:
         data = self.data.copy()
         data.loc[1, "name"] = "aspirin"
@@ -133,6 +149,64 @@ class AnalysisAndProjectTests(unittest.TestCase):
         loaded = load_project(package)
         self.assertTrue(loaded.warnings.empty)
         self.assertIn("reason", loaded.warnings.columns)
+
+    def test_project_roundtrip_preserves_text_identifiers_and_source_rows(self) -> None:
+        data = pd.DataFrame(
+            {
+                "name": ["0001", "0002", "0003"],
+                "smiles": ["CCO", "CCN", "CCC"],
+                "value": [1.0, 2.0, 3.0],
+            },
+            index=["plate-A", "plate-B", "plate-C"],
+        )
+        mapping = ColumnMapping("name", "smiles", "value")
+        fake_umap = types.SimpleNamespace(UMAP=FastReducer)
+        with patch.dict("sys.modules", {"umap": fake_umap}):
+            result = run_analysis(data, mapping, AnalysisSettings(n_neighbors=2))
+        package = io.BytesIO()
+        save_project(
+            package,
+            data,
+            mapping,
+            result.settings,
+            result=result,
+            selected_rows=["plate-A"],
+            areas_of_interest={"Leading zeros": ["plate-A", "plate-B"]},
+        )
+        package.seek(0)
+        loaded = load_project(package)
+
+        self.assertEqual(loaded.data["name"].tolist(), ["0001", "0002", "0003"])
+        self.assertEqual(loaded.data.index.tolist(), ["plate-A", "plate-B", "plate-C"])
+        self.assertEqual(loaded.embedding["source_row"].tolist(), ["plate-A", "plate-B", "plate-C"])
+        self.assertEqual(loaded.selected_rows, ["plate-A"])
+        self.assertEqual(loaded.areas_of_interest["Leading zeros"], ["plate-A", "plate-B"])
+
+    def test_project_loads_legacy_csv_archive(self) -> None:
+        legacy_data = self.data.copy()
+        legacy_data["name"] = ["0001", "0002", "0003", "0004", "0005"]
+        package = io.BytesIO()
+        with ZipFile(package, "w", compression=ZIP_DEFLATED) as archive:
+            archive.writestr("project_metadata.json", json.dumps({"source_filename": None}))
+            archive.writestr(
+                "settings.json",
+                json.dumps(
+                    {
+                        "mapping": self.mapping.to_dict(),
+                        "analysis": AnalysisSettings().to_dict(),
+                        "selected_rows": [],
+                        "plot_styles": {},
+                        "areas_of_interest": {},
+                    }
+                ),
+            )
+            archive.writestr("raw/imported_table.csv", legacy_data.to_csv(index=False))
+        package.seek(0)
+        loaded = load_project(package)
+
+        self.assertEqual(len(loaded.data), len(self.data))
+        self.assertEqual(loaded.data["name"].tolist(), ["0001", "0002", "0003", "0004", "0005"])
+        self.assertEqual(loaded.mapping.display_name, "name")
 
 
 if __name__ == "__main__":
