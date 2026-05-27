@@ -31,83 +31,30 @@ contain imported experimental datasets.
 - Save and reopen portable `.scom` project archives.
 - Choose system-driven, light, or dark interface themes.
 
-## Installation
+## Install from a Clone
 
-### Windows: Clean Computer Setup
+Python 3.11 or later is required. Clone the repository, then create an
+environment outside the repository before installing the application.
 
-These commands assume the user has no Python, Conda, or Git installed. They
-create an application-only runtime under `%LOCALAPPDATA%\SCOM`; they do not add
-Conda to `PATH`, register Python as the system default, or affect a future
-personal Conda installation. The commands install the released `v0.1.3`
-application source.
+### Windows
 
-Open PowerShell and paste these commands:
+Using a user-local application-data folder keeps the environment out of a
+cloud-synced repository and avoids hard-coded machine-specific paths:
 
 ```powershell
-$SCOM = Join-Path $env:LOCALAPPDATA "SCOM"
-$Runtime = Join-Path $SCOM "Runtime"
-$AppEnv = Join-Path $SCOM "AppEnv"
-$Source = Join-Path $SCOM "Source"
-$MiniInstaller = Join-Path $env:TEMP "Miniconda3-latest-Windows-x86_64.exe"
-$SourceZip = Join-Path $env:TEMP "Sweet-Chem-O-Mine-v0.1.3.zip"
-
-New-Item -ItemType Directory -Force -Path $SCOM | Out-Null
-
-curl.exe -L "https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe" --output $MiniInstaller
-if ((Get-AuthenticodeSignature -LiteralPath $MiniInstaller).Status -ne "Valid") { throw "The Miniconda download does not have a valid Windows signature." }
-Start-Process -Wait -FilePath $MiniInstaller -ArgumentList @("/InstallationType=JustMe", "/AddToPath=0", "/RegisterPython=0", "/S", "/D=$Runtime")
-
-& "$Runtime\Scripts\conda.exe" create --prefix $AppEnv -y --override-channels -c conda-forge "python=3.11" pip
-
-curl.exe -L "https://github.com/Silh0uettie/Sweet-Chem-O-Mine/archive/refs/tags/v0.1.3.zip" --output $SourceZip
-Expand-Archive -LiteralPath $SourceZip -DestinationPath $Source -Force
-$Package = (Get-ChildItem -LiteralPath $Source -Directory | Select-Object -First 1).FullName
-
-& "$AppEnv\python.exe" -m pip install --upgrade pip
-& "$AppEnv\python.exe" -m pip install $Package
-& "$AppEnv\pythonw.exe" -m sweet_chem_o_mine
+git clone https://github.com/Silh0uettie/Sweet-Chem-O-Mine.git
+Set-Location Sweet-Chem-O-Mine
+$venv = Join-Path $env:LOCALAPPDATA "SweetChemOMine\venv"
+py -3.11 -m venv $venv
+& "$venv\Scripts\python.exe" -m pip install --upgrade pip
+& "$venv\Scripts\python.exe" -m pip install -e .
+& "$venv\Scripts\python.exe" -m sweet_chem_o_mine
 ```
 
-The folder names `SCOM`, `Runtime`, and `AppEnv` make it explicit that this
-private Miniconda copy belongs only to Sweet Chem O' Mine. Do not use
+On managed computers that block newly downloaded application executables, use
+the last command above to start the software through Python. Do not use
 `python -m scom`: `scom` is a console command, while the Python module name is
 `sweet_chem_o_mine`.
-
-#### Create Shortcuts
-
-After installation, paste the following commands in the same PowerShell
-window to add Desktop and Start Menu shortcuts:
-
-```powershell
-$Icon = Join-Path $Package "packaging\windows\app_icon.ico"
-$Shell = New-Object -ComObject WScript.Shell
-$DesktopLink = Join-Path ([Environment]::GetFolderPath("Desktop")) "Sweet Chem O' Mine.lnk"
-$MenuFolder = Join-Path ([Environment]::GetFolderPath("Programs")) "Sweet Chem O' Mine"
-$MenuLink = Join-Path $MenuFolder "Sweet Chem O' Mine.lnk"
-New-Item -ItemType Directory -Force -Path $MenuFolder | Out-Null
-
-foreach ($Link in @($DesktopLink, $MenuLink)) {
-    $Shortcut = $Shell.CreateShortcut($Link)
-    $Shortcut.TargetPath = Join-Path $AppEnv "pythonw.exe"
-    $Shortcut.Arguments = "-m sweet_chem_o_mine"
-    $Shortcut.WorkingDirectory = $SCOM
-    $Shortcut.IconLocation = $Icon
-    $Shortcut.Save()
-}
-```
-
-#### Remove It Later
-
-```powershell
-$SCOM = Join-Path $env:LOCALAPPDATA "SCOM"
-Remove-Item -LiteralPath (Join-Path ([Environment]::GetFolderPath("Desktop")) "Sweet Chem O' Mine.lnk") -Force -ErrorAction SilentlyContinue
-Remove-Item -LiteralPath (Join-Path ([Environment]::GetFolderPath("Programs")) "Sweet Chem O' Mine") -Recurse -Force -ErrorAction SilentlyContinue
-if (Test-Path -LiteralPath (Join-Path $SCOM "Runtime\Uninstall-Miniconda3.exe")) { Start-Process -Wait -FilePath (Join-Path $SCOM "Runtime\Uninstall-Miniconda3.exe") -ArgumentList "/S" }
-Remove-Item -LiteralPath $SCOM -Recurse -Force -ErrorAction SilentlyContinue
-```
-
-On university-managed computers, security policy may still block the official
-Miniconda installer or prevent local software installation.
 
 ### macOS or Linux
 
