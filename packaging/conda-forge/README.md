@@ -1,7 +1,7 @@
 # Conda-Forge Submission
 
 The submission-ready conda-forge v1 recipe is stored in `recipe.yaml`. It
-references the MIT-licensed `v0.1.5` GitHub release archive and its SHA-256
+references the MIT-licensed `v0.2.0` GitHub release archive and its SHA-256
 checksum.
 
 To submit it:
