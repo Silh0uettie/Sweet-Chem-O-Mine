@@ -128,7 +128,7 @@ Python import/module name: `sweet_chem_o_mine`.
 
 Command-line launcher: `scom`.
 
-Current package version: `0.1.4`.
+Current package version: `0.1.3`.
 
 ## Windows Portable Build
 
@@ -148,18 +148,22 @@ the portable application through the **Build Windows Portable App** workflow
 on GitHub Actions, which supplies a downloadable Windows artifact without
 building an executable on the local managed computer.
 
-## Windows Installer Build
+## Private Windows Install
 
-A second GitHub Actions workflow, **Build Windows Constructor Installer**,
-creates a Windows installer using Conda Constructor. This installer contains a
-private runtime and dependencies, installs under
-`%LOCALAPPDATA%\SweetChemOMine` by default, does not add Python to `PATH`, and
-provides desktop/Start Menu shortcuts plus a Windows uninstaller.
+For Windows computers that permit official Miniconda and PowerShell scripts,
+Sweet Chem O' Mine can install into its own user-local Python runtime without
+creating a new application executable:
 
-Constructor makes installation and removal cleaner, but the installer is still
-an unsigned executable unless code signing is configured. A university-managed
-computer can therefore block it under the same Defender policy that blocks a
-new portable application build.
+```powershell
+irm https://raw.githubusercontent.com/Silh0uettie/Sweet-Chem-O-Mine/main/install-windows.ps1 | iex
+```
 
-The Constructor configuration and build details are in
-[`packaging/constructor/README.md`](packaging/constructor/README.md).
+This installs under `%LOCALAPPDATA%\SweetChemOMine`, creates a private tested
+Python 3.11 application environment, does not change system `PATH`, creates
+desktop and Start Menu shortcuts, and adds an uninstaller under Windows
+installed apps. The shortcut launches through the private environment's
+`pythonw.exe`.
+
+The installer script downloads the official signed Miniconda installer and the
+public Sweet Chem O' Mine source repository. A managed computer can still
+block downloaded PowerShell scripts or software installation by policy.
