@@ -33,15 +33,15 @@ jobs:
       - name: Install Constructor packaging tools
         shell: pwsh
         run: |
-          & "$env:CONDA\Scripts\conda.exe" install -n base -y -c conda-forge constructor conda-build
+          & "$env:CONDA\Scripts\conda.exe" install -n base -y -c conda-forge constructor boa
 
       - name: Build local Conda application package
         shell: pwsh
         run: |
           $channelPath = Join-Path $env:RUNNER_TEMP "scom-conda-bld"
-          # Application behavior is covered by the Tests workflow; avoid resolving
-          # the full GUI/scientific runtime twice during installer construction.
-          & "$env:CONDA\Scripts\conda.exe" run -n base conda-build packaging\constructor\recipe --no-test --output-folder $channelPath
+          # Application behavior is covered by the Tests workflow. Mambabuild
+          # assembles the local package without the classic conda-build solver delay.
+          & "$env:CONDA\Scripts\conda.exe" run -n base conda mambabuild packaging\constructor\recipe --no-test --output-folder $channelPath
           if ($LASTEXITCODE -ne 0) { throw "Conda package build failed." }
 
       - name: Build Constructor installer

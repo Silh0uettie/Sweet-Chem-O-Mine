@@ -23,10 +23,10 @@ local Conda channel.
 On an unrestricted Windows development computer with Miniforge or Conda:
 
 ```powershell
-conda install -c conda-forge constructor conda-build
+conda install -c conda-forge constructor boa
 $channelPath = Join-Path $env:TEMP "scom-conda-bld"
 $outputPath = Join-Path $env:TEMP "scom-installer"
-conda build packaging\constructor\recipe --output-folder $channelPath
+conda mambabuild packaging\constructor\recipe --no-test --output-folder $channelPath
 $env:SCOM_LOCAL_CHANNEL = "file:///" + ($channelPath -replace '\\', '/')
 constructor packaging\constructor --output-dir $outputPath
 ```
