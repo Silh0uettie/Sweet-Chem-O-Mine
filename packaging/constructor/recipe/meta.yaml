@@ -1,0 +1,40 @@
+{% set version = "0.1.4" %}
+
+package:
+  name: sweet-chem-o-mine
+  version: {{ version }}
+
+source:
+  path: ../../..
+
+build:
+  number: 0
+  script: bld.bat
+  entry_points:
+    - scom = sweet_chem_o_mine.app:main
+    - sweet-chem-o-mine = sweet_chem_o_mine.app:main
+
+requirements:
+  host:
+    - python >=3.11,<3.12
+    - pip
+    - setuptools >=69
+    - wheel
+  run:
+    - python >=3.11,<3.12
+    - matplotlib >=3.8
+    - numpy >=1.26
+    - openpyxl >=3.1
+    - pandas >=2.2
+    - pyside6 >=6.8,<6.9
+    - rdkit >=2024.3
+    - umap-learn >=0.5.6
+    - xlrd >=2.0.1
+    - menuinst >=2
+
+test:
+  imports:
+    - sweet_chem_o_mine
+
+about:
+  summary: Desktop chemical UMAP explorer for structure-activity datasets.

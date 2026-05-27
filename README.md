@@ -128,7 +128,7 @@ Python import/module name: `sweet_chem_o_mine`.
 
 Command-line launcher: `scom`.
 
-Current package version: `0.1.3`.
+Current package version: `0.1.4`.
 
 ## Windows Portable Build
 
@@ -147,3 +147,19 @@ case, continue using the installed Python-package launcher, `scom`, or build
 the portable application through the **Build Windows Portable App** workflow
 on GitHub Actions, which supplies a downloadable Windows artifact without
 building an executable on the local managed computer.
+
+## Windows Installer Build
+
+A second GitHub Actions workflow, **Build Windows Constructor Installer**,
+creates a Windows installer using Conda Constructor. This installer contains a
+private runtime and dependencies, installs under
+`%LOCALAPPDATA%\SweetChemOMine` by default, does not add Python to `PATH`, and
+provides desktop/Start Menu shortcuts plus a Windows uninstaller.
+
+Constructor makes installation and removal cleaner, but the installer is still
+an unsigned executable unless code signing is configured. A university-managed
+computer can therefore block it under the same Defender policy that blocks a
+new portable application build.
+
+The Constructor configuration and build details are in
+[`packaging/constructor/README.md`](packaging/constructor/README.md).

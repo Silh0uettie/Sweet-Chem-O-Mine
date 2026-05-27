@@ -1,0 +1,60 @@
+name: Build Windows Constructor Installer
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+    paths:
+      - ".github/workflows/windows-installer.yml"
+      - "packaging/constructor/**"
+      - "packaging/windows/app_icon.ico"
+      - "pyproject.toml"
+      - "src/**"
+
+jobs:
+  windows-installer:
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Miniforge
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          miniforge-version: latest
+          channels: conda-forge
+          channel-priority: strict
+          auto-update-conda: false
+
+      - name: Install Constructor packaging tools
+        shell: pwsh
+        run: |
+          & "$env:CONDA\Scripts\conda.exe" install -n base -y -c conda-forge constructor conda-build
+
+      - name: Build local Conda application package
+        shell: pwsh
+        run: |
+          $channelPath = Join-Path $env:RUNNER_TEMP "scom-conda-bld"
+          & "$env:CONDA\Scripts\conda.exe" run -n base conda-build packaging\constructor\recipe --output-folder $channelPath
+          if ($LASTEXITCODE -ne 0) { throw "Conda package build failed." }
+
+      - name: Build Constructor installer
+        shell: pwsh
+        run: |
+          $channelPath = Join-Path $env:RUNNER_TEMP "scom-conda-bld"
+          $outputPath = Join-Path $env:RUNNER_TEMP "scom-installer"
+          $env:SCOM_LOCAL_CHANNEL = "file:///" + ($channelPath -replace '\\', '/')
+          & "$env:CONDA\Scripts\conda.exe" run -n base constructor packaging\constructor --output-dir $outputPath
+          if ($LASTEXITCODE -ne 0) { throw "Constructor installer build failed." }
+          Get-ChildItem -LiteralPath $outputPath
+
+      - name: Upload Windows installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: Sweet-Chem-O-Mine-Windows-Installer
+          path: ${{ runner.temp }}\scom-installer\Sweet-Chem-O-Mine-Windows-Installer-0.1.4.exe
+          if-no-files-found: error

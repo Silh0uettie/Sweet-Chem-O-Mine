@@ -1,0 +1,32 @@
+name: Sweet-Chem-O-Mine
+version: 0.1.4
+company: Sweet Chem O' Mine
+uninstall_name: Sweet Chem O' Mine
+installer_type: exe
+installer_filename: Sweet-Chem-O-Mine-Windows-Installer-0.1.4.exe
+
+channels:
+  - {{ environ["SCOM_LOCAL_CHANNEL"] }}
+  - conda-forge
+
+specs:
+  - python 3.11.*
+  - conda
+  - menuinst >=2
+  - sweet-chem-o-mine ==0.1.4
+
+menu_packages:
+  - sweet-chem-o-mine
+
+default_prefix: "%LOCALAPPDATA%\\SweetChemOMine"
+default_prefix_domain_user: "%LOCALAPPDATA%\\SweetChemOMine"
+register_python: false
+register_python_default: false
+initialize_conda: false
+initialize_by_default: false
+register_envs: false
+write_condarc: false
+keep_pkgs: false
+
+welcome_text: "Install Sweet Chem O' Mine, a chemical UMAP explorer for structure-activity datasets."
+conclusion_text: "Sweet Chem O' Mine is installed. Launch it from the desktop or Start Menu shortcut."
