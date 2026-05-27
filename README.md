@@ -31,6 +31,20 @@ contain imported experimental datasets.
 - Save and reopen portable `.scom` project archives.
 - Choose system-driven, light, or dark interface themes.
 
+## Conda-Forge Status
+
+Sweet Chem O' Mine is being prepared for submission to conda-forge. After the
+recipe is reviewed and accepted, installation will be:
+
+```bash
+conda create -n scom -c conda-forge python=3.11 sweet-chem-o-mine
+conda activate scom
+scom
+```
+
+Until that submission is accepted, use the source installation instructions
+below.
+
 ## Install from a Clone
 
 Python 3.11 or later is required. Clone the repository, then create an
@@ -128,7 +142,11 @@ Python import/module name: `sweet_chem_o_mine`.
 
 Command-line launcher: `scom`.
 
-Current package version: `0.1.3`.
+Current package version: `0.1.4`.
+
+## License
+
+Sweet Chem O' Mine is released under the [MIT License](LICENSE).
 
 ## Windows Portable Build
 
