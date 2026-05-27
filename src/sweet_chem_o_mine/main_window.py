@@ -12,7 +12,7 @@ from matplotlib.path import Path as MplPath
 from matplotlib.widgets import LassoSelector
 from rdkit import Chem
 from rdkit.Chem import Draw
-from PySide6.QtCore import QByteArray, QEvent, QObject, QSize, QThread, QTimer, Qt, Signal, Slot
+from PySide6.QtCore import QByteArray, QEvent, QObject, QSettings, QSize, QThread, QTimer, Qt, Signal, Slot
 from PySide6.QtGui import QAction, QActionGroup, QColor, QImage, QPalette, QPainter, QPixmap, QResizeEvent
 from PySide6.QtSvg import QSvgRenderer
 from PySide6.QtWidgets import (
@@ -206,6 +206,7 @@ class MainWindow(QMainWindow):
         self._loading_state = False
         application = QApplication.instance()
         self._system_palette = QPalette(application.palette()) if application is not None else QPalette()
+        self._preferences = QSettings()
         self._theme_mode = "auto"
         self.umap_style = PlotStyle("Chemical Space UMAP", "RdYlGn_r", 20, "black", 0.75, False)
         self.bar_style = PlotStyle("Selected Compounds", "#d95f4b", edge_color="black")
@@ -232,7 +233,8 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage("Open a CSV or Excel table to begin.")
         if application is not None:
             application.styleHints().colorSchemeChanged.connect(self._system_color_scheme_changed)
-        self.apply_theme("auto")
+        saved_theme = self._preferences.value("interface/theme", "auto", type=str)
+        self.apply_theme(saved_theme if saved_theme in {"auto", "light", "dark"} else "auto")
 
     def _create_menu(self) -> None:
         file_menu = self.menuBar().addMenu("&File")
@@ -287,6 +289,10 @@ class MainWindow(QMainWindow):
         guide_action = QAction("&Quick Guide", self)
         guide_action.triggered.connect(self.show_quick_guide)
         help_menu.addAction(guide_action)
+        clear_temporary_action = QAction("Clear &Local Temporary Files...", self)
+        clear_temporary_action.triggered.connect(self.clear_local_temporary_files)
+        help_menu.addAction(clear_temporary_action)
+        help_menu.addSeparator()
         about_action = QAction("&About Sweet Chem O' Mine", self)
         about_action.triggered.connect(self.show_about)
         help_menu.addAction(about_action)
@@ -344,11 +350,15 @@ class MainWindow(QMainWindow):
         self.plots_splitter.setSizes([230, 700, 600])
         self.panels_splitter.setSizes([560, 270])
 
-    def apply_theme(self, theme: str) -> None:
+    def apply_theme(self, theme: str, *, save_preference: bool = True) -> None:
         application = QApplication.instance()
         if application is None:
             return
+        if theme not in {"auto", "light", "dark"}:
+            theme = "auto"
         self._theme_mode = theme
+        if save_preference:
+            self._preferences.setValue("interface/theme", theme)
         requested_theme = theme
         if theme == "auto":
             theme = "dark" if self._system_prefers_dark() else "light"
@@ -361,7 +371,7 @@ class MainWindow(QMainWindow):
 
     def _system_color_scheme_changed(self, _scheme) -> None:  # type: ignore[no-untyped-def]
         if self._theme_mode == "auto":
-            self.apply_theme("auto")
+            self.apply_theme("auto", save_preference=False)
 
     def _system_prefers_dark(self) -> bool:
         application = QApplication.instance()
@@ -426,6 +436,20 @@ class MainWindow(QMainWindow):
             "3. Set parameters and run analysis.\n"
             "4. Select points on the UMAP plot to view results.\n"
             "5. Export AOIs or figures, or save the complete .scom project.",
+        )
+
+    def clear_local_temporary_files(self) -> None:
+        render_count = len(self._structure_render_cache)
+        molecule_count = len(self._molecule_cache)
+        self._structure_render_cache.clear()
+        self._molecule_cache.clear()
+        QMessageBox.information(
+            self,
+            "Clear Local Temporary Files",
+            "Cleared Sweet Chem's current-session display cache:\n"
+            f"- {render_count} rendered structure view(s)\n"
+            f"- {molecule_count} parsed molecule(s)\n\n"
+            "No input tables, .scom projects, exported files, settings, or package/build files were removed.",
         )
 
     def show_about(self) -> None:

@@ -19,6 +19,7 @@ def main() -> int:
     from .main_window import MainWindow
 
     application = QApplication(sys.argv)
+    application.setOrganizationName("SweetChemOMine")
     application.setApplicationName("Project Sweet Chem O' Mine")
     icon_path = Path(__file__).parent / "assets" / "app_icon.png"
     if icon_path.exists():
