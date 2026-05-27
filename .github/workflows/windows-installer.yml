@@ -39,7 +39,9 @@ jobs:
         shell: pwsh
         run: |
           $channelPath = Join-Path $env:RUNNER_TEMP "scom-conda-bld"
-          & "$env:CONDA\Scripts\conda.exe" run -n base conda-build packaging\constructor\recipe --output-folder $channelPath
+          # Application behavior is covered by the Tests workflow; avoid resolving
+          # the full GUI/scientific runtime twice during installer construction.
+          & "$env:CONDA\Scripts\conda.exe" run -n base conda-build packaging\constructor\recipe --no-test --output-folder $channelPath
           if ($LASTEXITCODE -ne 0) { throw "Conda package build failed." }
 
       - name: Build Constructor installer
