@@ -21,7 +21,8 @@ contain imported experimental datasets.
 ## Features
 
 - Open `.csv`, `.xls`, and `.xlsx` tables, with worksheet selection for Excel files.
-- Map columns for display name, SMILES, assay value, and an optional error bar.
+- Map columns for display name, SMILES, an optional assay value, and an optional error bar.
+- Run structure-only UMAP analysis without value data or a colour scale.
 - Rename the value axis independently from the imported column name.
 - Configure Morgan fingerprint and UMAP parameters with inline help.
 - Select compounds on the UMAP and inspect linked values and structures.
@@ -91,7 +92,7 @@ sweet-chem-o-mine
 ## Workflow
 
 1. Open a tabular data file and choose the working sheet when using Excel.
-2. Assign columns for names, SMILES, values, and optional error bars.
+2. Assign columns for names and SMILES; choose `None (UMAP only)` for Value when no assay values are available.
 3. Adjust fingerprint/UMAP settings or use the defaults.
 4. Run the analysis and lasso-select compounds in the UMAP.
 5. Save AOIs, export results, or save a full `.scom` project.
@@ -142,7 +143,7 @@ Python import/module name: `sweet_chem_o_mine`.
 
 Command-line launcher: `scom`.
 
-Current package version: `0.1.5`.
+Current package version: `0.2.0`.
 
 ## License
 

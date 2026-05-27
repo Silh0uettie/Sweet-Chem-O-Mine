@@ -82,6 +82,18 @@ class AnalysisAndProjectTests(unittest.TestCase):
         self.assertTrue(result.embedding["stdev"].isna().all())
         self.assertEqual(mapping.display_value_label(), "Inhibition (%)")
 
+    def test_analysis_allows_umap_without_value_column(self) -> None:
+        mapping = ColumnMapping("name", "smiles", None)
+        structure_data = self.data.drop(columns=["value", "stdev"])
+        fake_umap = types.SimpleNamespace(UMAP=FastReducer)
+        with patch.dict("sys.modules", {"umap": fake_umap}):
+            result = run_analysis(structure_data, mapping, AnalysisSettings(n_neighbors=2))
+        self.assertEqual(len(result.embedding), 3)
+        self.assertTrue(result.embedding["value"].isna().all())
+        self.assertTrue(result.embedding["stdev"].isna().all())
+        self.assertEqual(len(result.excluded), 2)
+        self.assertNotIn("Non-numeric value", "; ".join(result.excluded["reason"].to_list()))
+
     def test_analysis_reports_non_fatal_data_warnings(self) -> None:
         data = self.data.copy()
         data.loc[1, "name"] = "aspirin"
@@ -181,6 +193,20 @@ class AnalysisAndProjectTests(unittest.TestCase):
         self.assertEqual(loaded.embedding["source_row"].tolist(), ["plate-A", "plate-B", "plate-C"])
         self.assertEqual(loaded.selected_rows, ["plate-A"])
         self.assertEqual(loaded.areas_of_interest["Leading zeros"], ["plate-A", "plate-B"])
+
+    def test_project_roundtrip_preserves_umap_only_mapping(self) -> None:
+        mapping = ColumnMapping("name", "smiles", None)
+        data = self.data.drop(columns=["value", "stdev"])
+        fake_umap = types.SimpleNamespace(UMAP=FastReducer)
+        with patch.dict("sys.modules", {"umap": fake_umap}):
+            result = run_analysis(data, mapping, AnalysisSettings(n_neighbors=2))
+        package = io.BytesIO()
+        save_project(package, data, mapping, result.settings, result=result)
+        package.seek(0)
+        loaded = load_project(package)
+
+        self.assertIsNone(loaded.mapping.value)
+        self.assertTrue(loaded.embedding["value"].isna().all())
 
     def test_project_loads_legacy_csv_archive(self) -> None:
         legacy_data = self.data.copy()

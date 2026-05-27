@@ -19,7 +19,7 @@ def parse_smiles_quietly(smiles: str):  # type: ignore[no-untyped-def]
 class ColumnMapping:
     display_name: str
     smiles: str
-    value: str
+    value: str | None
     stdev: str | None = None
     value_label: str | None = None
 
@@ -31,13 +31,13 @@ class ColumnMapping:
         return cls(
             display_name=str(value["display_name"]),
             smiles=str(value["smiles"]),
-            value=str(value["value"]),
+            value=value.get("value") or None,
             stdev=value.get("stdev") or None,
             value_label=value.get("value_label") or None,
         )
 
     def display_value_label(self) -> str:
-        return (self.value_label or "").strip() or self.value
+        return (self.value_label or "").strip() or self.value or "Value"
 
 
 @dataclass(slots=True)
@@ -70,8 +70,10 @@ class AnalysisResult:
 
 
 def _validate_mapping(data: pd.DataFrame, mapping: ColumnMapping) -> None:
-    required_columns = [mapping.display_name, mapping.smiles, mapping.value]
-    if mapping.stdev:
+    required_columns = [mapping.display_name, mapping.smiles]
+    if mapping.value:
+        required_columns.append(mapping.value)
+    if mapping.value and mapping.stdev:
         required_columns.append(mapping.stdev)
     missing = [column for column in required_columns if column not in data.columns]
     if missing:
@@ -111,8 +113,12 @@ def run_analysis(
     for row_number, (source_index, row) in enumerate(data.iterrows(), start=1):
         reasons: list[str] = []
         smiles = row[mapping.smiles]
-        value = pd.to_numeric(row[mapping.value], errors="coerce")
-        stdev = pd.to_numeric(row[mapping.stdev], errors="coerce") if mapping.stdev else np.nan
+        value = pd.to_numeric(row[mapping.value], errors="coerce") if mapping.value else np.nan
+        stdev = (
+            pd.to_numeric(row[mapping.stdev], errors="coerce")
+            if mapping.value and mapping.stdev
+            else np.nan
+        )
 
         if pd.isna(smiles) or not str(smiles).strip():
             reasons.append("Missing SMILES")
@@ -121,7 +127,7 @@ def run_analysis(
             mol = parse_smiles_quietly(str(smiles).strip())
             if mol is None:
                 reasons.append("Invalid SMILES")
-        if pd.isna(value):
+        if mapping.value and pd.isna(value):
             reasons.append("Non-numeric value")
 
         if reasons:
@@ -142,14 +148,14 @@ def run_analysis(
                 "source_row": source_index,
                 "display_name": str(row[mapping.display_name]),
                 "smiles": str(smiles).strip(),
-                "value": float(value),
+                "value": float(value) if mapping.value else np.nan,
                 "stdev": float(stdev) if not pd.isna(stdev) else np.nan,
             }
         )
         warning_reasons: list[str] = []
         if source_index in duplicated_names:
             warning_reasons.append("Duplicate display name")
-        if mapping.stdev and pd.isna(stdev):
+        if mapping.value and mapping.stdev and pd.isna(stdev):
             warning_reasons.append("Missing or non-numeric error bar")
         if warning_reasons:
             warning_rows.append(
@@ -163,7 +169,8 @@ def run_analysis(
         report(5 + int(55 * row_number / total_rows), f"Processing molecular structures: {row_number}/{total_rows}")
 
     if len(valid_rows) < 3:
-        raise ValueError("At least three rows with valid SMILES and numeric values are needed.")
+        detail = " and numeric values" if mapping.value else ""
+        raise ValueError(f"At least three rows with valid SMILES{detail} are needed.")
 
     effective_neighbors = min(settings.n_neighbors, len(valid_rows) - 1)
     if effective_neighbors < 2:

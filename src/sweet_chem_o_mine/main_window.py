@@ -1155,33 +1155,39 @@ class MainWindow(QMainWindow):
     def _populate_columns(self, mapping: ColumnMapping | None = None) -> None:
         assert self.data is not None
         columns = [str(column) for column in self.data.columns]
-        for widget in (self.name_column, self.smiles_column, self.value_column):
+        for widget in (self.name_column, self.smiles_column):
             widget.clear()
             widget.addItems(columns)
+        self.value_column.clear()
+        self.value_column.addItem("None (UMAP only)")
+        self.value_column.addItems(columns)
         self.stdev_column.clear()
         self.stdev_column.addItem("None (no error bars)")
         self.stdev_column.addItems(columns)
 
         if mapping:
-            choices = [mapping.display_name, mapping.smiles, mapping.value]
+            choices = [mapping.display_name, mapping.smiles]
         else:
             choices = [
                 self._guess_column(columns, ["sample number", "name", "compound", "id"]),
                 self._guess_column(columns, ["smiles", "smile"]),
-                self._guess_column(columns, ["average", "value", "activity", "inhibition"]),
             ]
-        for widget, column in zip((self.name_column, self.smiles_column, self.value_column), choices):
+        for widget, column in zip((self.name_column, self.smiles_column), choices):
             if column in columns:
                 widget.setCurrentText(column)
+        value_column = (
+            mapping.value
+            if mapping
+            else self._guess_column(columns, ["average", "value", "activity", "inhibition"])
+        )
+        self.value_column.setCurrentText(value_column if value_column in columns else "None (UMAP only)")
         error_column = (
             mapping.stdev
             if mapping
             else self._guess_optional_column(columns, ["stdev", "std", "sd", "standard deviation"])
         )
         self.stdev_column.setCurrentText(error_column if error_column in columns else "None (no error bars)")
-        self.value_axis_label.setText(
-            mapping.display_value_label() if mapping else self.value_column.currentText()
-        )
+        self._configure_value_controls(mapping.display_value_label() if mapping and mapping.value else None)
 
     @staticmethod
     def _guess_column(columns: list[str], candidates: list[str]) -> str:
@@ -1208,8 +1214,20 @@ class MainWindow(QMainWindow):
         return None
 
     def _value_column_changed(self, column: str) -> None:
-        self.value_axis_label.setText(column)
+        self._configure_value_controls(None if self.value_column.currentIndex() == 0 else column)
         self._redraw_value_label_changes()
+
+    def _configure_value_controls(self, label: str | None) -> None:
+        has_values = self.value_column.currentIndex() > 0
+        self.value_axis_label.setEnabled(has_values)
+        self.stdev_column.setEnabled(has_values)
+        if has_values:
+            self.value_axis_label.setPlaceholderText("Value axis label")
+            self.value_axis_label.setText(label or self.value_column.currentText())
+        else:
+            self.stdev_column.setCurrentIndex(0)
+            self.value_axis_label.clear()
+            self.value_axis_label.setPlaceholderText("No value axis (UMAP only)")
 
     def _mapping_column_changed(self, _column: str) -> None:
         self._invalidate_analysis_results("Column mapping changed. Run Analysis to display updated figures.")
@@ -1228,6 +1246,8 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage(message)
 
     def _value_label_changed(self) -> None:
+        if self.value_column.currentIndex() == 0:
+            return
         if not self.value_axis_label.text().strip():
             self.value_axis_label.setText(self.value_column.currentText())
         self._redraw_value_label_changes()
@@ -1239,13 +1259,17 @@ class MainWindow(QMainWindow):
     def _value_axis_label(self) -> str:
         return self.value_axis_label.text().strip() or self.value_column.currentText() or "Value"
 
+    def _has_mapped_values(self) -> bool:
+        return self.result is not None and self.result.mapping.value is not None
+
     def _current_mapping(self) -> ColumnMapping:
+        value_column = None if self.value_column.currentIndex() == 0 else self.value_column.currentText()
         return ColumnMapping(
             display_name=self.name_column.currentText(),
             smiles=self.smiles_column.currentText(),
-            value=self.value_column.currentText(),
-            stdev=None if self.stdev_column.currentIndex() == 0 else self.stdev_column.currentText(),
-            value_label=self._value_axis_label(),
+            value=value_column,
+            stdev=None if value_column is None or self.stdev_column.currentIndex() == 0 else self.stdev_column.currentText(),
+            value_label=self._value_axis_label() if value_column else None,
         )
 
     def _current_settings(self) -> AnalysisSettings:
@@ -1387,19 +1411,22 @@ class MainWindow(QMainWindow):
                 alpha=0.8,
                 zorder=1,
             )
-        points = axis.scatter(
-            frame["UMAP 1"],
-            frame["UMAP 2"],
-            c=frame["value"],
-            cmap=self.umap_style.color,
-            s=self.umap_style.marker_size,
-            alpha=self.umap_style.opacity,
-            edgecolors=self.umap_style.edge_color if self.umap_style.show_outline else "none",
-            linewidths=0.35 if self.umap_style.show_outline else 0,
-            rasterized=len(frame) > 2000,
-            zorder=2,
-        )
-        figure.colorbar(points, ax=axis, label=self._value_axis_label())
+        point_options: dict[str, object] = {
+            "s": self.umap_style.marker_size,
+            "alpha": self.umap_style.opacity,
+            "edgecolors": self.umap_style.edge_color if self.umap_style.show_outline else "none",
+            "linewidths": 0.35 if self.umap_style.show_outline else 0,
+            "rasterized": len(frame) > 2000,
+            "zorder": 2,
+        }
+        if self._has_mapped_values():
+            point_options["c"] = frame["value"]
+            point_options["cmap"] = self.umap_style.color
+        else:
+            point_options["color"] = "#2e8b57"
+        points = axis.scatter(frame["UMAP 1"], frame["UMAP 2"], **point_options)
+        if self._has_mapped_values():
+            figure.colorbar(points, ax=axis, label=self._value_axis_label())
         axis.set_title(self.umap_style.title)
         axis.set_xlabel("UMAP 1")
         axis.set_ylabel("UMAP 2")
@@ -1449,19 +1476,31 @@ class MainWindow(QMainWindow):
             self._structure_svg = None
             return
 
-        selected = self.result.embedding.iloc[self.selected_positions].sort_values("value", ascending=False)
-        self.bar_figure.clear()
-        self._plot_bar_on_axis(self.bar_figure, selected)
-        self.bar_canvas.draw_idle()
+        selected = self._selected_frame()
+        assert selected is not None
+        if self._has_mapped_values():
+            self.bar_figure.clear()
+            self._plot_bar_on_axis(self.bar_figure, selected)
+            self.bar_canvas.draw_idle()
+        else:
+            self._show_empty_plot(self.bar_figure, self.bar_canvas, "No value column selected (UMAP only)")
 
         self._draw_structure_grid(selected)
 
     def _selected_frame(self) -> pd.DataFrame | None:
         if self.result is None or not self.selected_positions:
             return None
-        return self.result.embedding.iloc[self.selected_positions].sort_values("value", ascending=False)
+        selected = self.result.embedding.iloc[self.selected_positions]
+        if self._has_mapped_values():
+            return selected.sort_values("value", ascending=False)
+        return selected
 
     def _plot_bar_on_axis(self, figure: Figure, selected: pd.DataFrame) -> None:
+        if not self._has_mapped_values():
+            axis = figure.add_subplot(111)
+            axis.text(0.5, 0.5, "No value column selected (UMAP only)", ha="center", va="center")
+            axis.set_axis_off()
+            return
         axis = figure.add_subplot(111)
         bar_options: dict[str, object] = {}
         if selected["stdev"].notna().any():
@@ -1502,7 +1541,7 @@ class MainWindow(QMainWindow):
             value_label,
             tuple(visible["smiles"].astype(str)),
             tuple(visible["display_name"].astype(str)),
-            tuple(visible["value"].astype(float)),
+            tuple(visible["value"].astype(float)) if self._has_mapped_values() else (),
         )
         cached = self._structure_render_cache.get(key)
         if cached is not None:
@@ -1512,10 +1551,13 @@ class MainWindow(QMainWindow):
             if smiles not in self._molecule_cache:
                 self._molecule_cache[smiles] = parse_smiles_quietly(smiles)
             mols.append(self._molecule_cache[smiles])
-        legends = [
-            f"{name}\n{value_label}: {value:.2f}"
-            for name, value in zip(visible["display_name"], visible["value"])
-        ]
+        if self._has_mapped_values():
+            legends = [
+                f"{name}\n{value_label}: {value:.2f}"
+                for name, value in zip(visible["display_name"], visible["value"])
+            ]
+        else:
+            legends = [str(name) for name in visible["display_name"]]
         svg = Draw.MolsToGridImage(
             mols,
             legends=legends,
@@ -1640,8 +1682,11 @@ class MainWindow(QMainWindow):
         toolbar = NavigationToolbar2QT(canvas, window)
         if self.result is None or not self.selected_positions:
             self._show_empty_plot(figure, canvas, "Select compounds on the UMAP plot")
+        elif not self._has_mapped_values():
+            self._show_empty_plot(figure, canvas, "No value column selected (UMAP only)")
         else:
-            selected = self.result.embedding.iloc[self.selected_positions].sort_values("value", ascending=False)
+            selected = self._selected_frame()
+            assert selected is not None
             self._plot_bar_on_axis(figure, selected)
         window.content_layout.addWidget(toolbar)
         window.content_layout.addWidget(canvas, stretch=1)
@@ -1674,8 +1719,11 @@ class MainWindow(QMainWindow):
             elif window.view_kind == "bar" and window.figure is not None and window.canvas is not None:
                 if self.result is None or not self.selected_positions:
                     self._show_empty_plot(window.figure, window.canvas, "Select compounds on the UMAP plot")
+                elif not self._has_mapped_values():
+                    self._show_empty_plot(window.figure, window.canvas, "No value column selected (UMAP only)")
                 else:
-                    selected = self.result.embedding.iloc[self.selected_positions].sort_values("value", ascending=False)
+                    selected = self._selected_frame()
+                    assert selected is not None
                     window.figure.clear()
                     self._plot_bar_on_axis(window.figure, selected)
                     window.canvas.draw_idle()
@@ -1740,6 +1788,10 @@ class MainWindow(QMainWindow):
                 if selected is None or selected.empty:
                     axis = bar_figure.add_subplot(111)
                     axis.text(0.5, 0.5, "No compounds selected", ha="center", va="center")
+                    axis.set_axis_off()
+                elif not self._has_mapped_values():
+                    axis = bar_figure.add_subplot(111)
+                    axis.text(0.5, 0.5, "No value column selected (UMAP only)", ha="center", va="center")
                     axis.set_axis_off()
                 else:
                     self._plot_bar_on_axis(bar_figure, selected)
