@@ -1,6 +1,11 @@
 from pathlib import Path
 
-from PyInstaller.utils.hooks import collect_data_files
+from PyInstaller.utils.hooks import (
+    collect_data_files,
+    collect_dynamic_libs,
+    collect_submodules,
+    copy_metadata,
+)
 
 
 ROOT = Path(SPECPATH).parents[1]
@@ -10,20 +15,54 @@ APP_ICON = SRC / "sweet_chem_o_mine" / "assets" / "app_icon.png"
 
 datas = [(str(APP_ICON), "sweet_chem_o_mine/assets")]
 datas += collect_data_files("matplotlib")
+binaries = []
+
+analysis_packages = [
+    "joblib",
+    "llvmlite",
+    "numba",
+    "numpy",
+    "pynndescent",
+    "rdkit",
+    "scipy",
+    "sklearn",
+    "threadpoolctl",
+    "umap",
+]
+for package in analysis_packages:
+    datas += collect_data_files(package, include_py_files=False)
+    binaries += collect_dynamic_libs(package)
+
+for distribution in [
+    "joblib",
+    "llvmlite",
+    "numba",
+    "numpy",
+    "pynndescent",
+    "rdkit",
+    "scikit-learn",
+    "scipy",
+    "threadpoolctl",
+    "umap-learn",
+]:
+    datas += copy_metadata(distribution)
+
+hiddenimports = [
+    "openpyxl",
+    "sweet_chem_o_mine.analysis",
+    "sweet_chem_o_mine.data_io",
+    "sweet_chem_o_mine.project_file",
+    "xlrd",
+]
+for package in analysis_packages:
+    hiddenimports += collect_submodules(package)
 
 a = Analysis(
     [str(ROOT / "packaging" / "windows" / "launch_scom.py")],
     pathex=[str(SRC)],
-    binaries=[],
+    binaries=binaries,
     datas=datas,
-    hiddenimports=[
-        "umap",
-        "openpyxl",
-        "xlrd",
-        "sweet_chem_o_mine.analysis",
-        "sweet_chem_o_mine.data_io",
-        "sweet_chem_o_mine.project_file",
-    ],
+    hiddenimports=hiddenimports,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

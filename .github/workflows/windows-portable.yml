@@ -21,7 +21,7 @@ jobs:
           cache: pip
 
       - name: Install application and packager
-        run: python -m pip install . pyinstaller pillow
+        run: python -m pip install . pyinstaller pyinstaller-hooks-contrib pillow
 
       - name: Build portable Windows folder
         shell: pwsh
@@ -31,6 +31,11 @@ jobs:
             -Python $python `
             -WorkPath "${{ runner.temp }}\scom-build" `
             -DistPath "${{ runner.temp }}\scom-dist"
+
+      - name: Verify portable analysis backend
+        shell: pwsh
+        run: |
+          & "${{ runner.temp }}\scom-dist\Sweet Chem O Mine\Sweet Chem O Mine.exe" --analysis-smoke
 
       - name: Upload portable application
         uses: actions/upload-artifact@v4

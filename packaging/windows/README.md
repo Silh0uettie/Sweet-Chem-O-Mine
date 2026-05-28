@@ -60,3 +60,12 @@ the workflow automatically.
 4. Select compounds, save an AOI, and export CSV/PDF output.
 5. Save and reopen a `.scom` project.
 6. Switch light/dark/auto theme modes.
+
+The GitHub Actions build also runs:
+
+```powershell
+Sweet Chem O Mine.exe --analysis-smoke
+```
+
+This verifies that the packaged executable can import and execute the
+DLL-heavy RDKit/UMAP/Numba analysis path before the artifact is uploaded.
