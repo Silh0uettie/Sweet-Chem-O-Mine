@@ -32,19 +32,27 @@ contain imported experimental datasets.
 - Save and reopen portable `.scom` project archives.
 - Choose system-driven, light, or dark interface themes.
 
-## Conda-Forge Status
+## Install with Conda
 
-Sweet Chem O' Mine is being prepared for submission to conda-forge. After the
-recipe is reviewed and accepted, installation will be:
+Sweet Chem O' Mine is available from the `silh0uettie` Anaconda channel while
+the conda-forge feedstock is being finalized. Include `conda-forge` as the
+dependency channel because packages such as RDKit, PySide6, and UMAP are
+resolved from conda-forge:
+
+```bash
+conda create -n scom -c silh0uettie -c conda-forge python=3.11 sweet-chem-o-mine
+conda activate scom
+scom
+```
+
+The conda-forge feedstock is being finalized. After it is published on the
+conda-forge channel, installation will also work with:
 
 ```bash
 conda create -n scom -c conda-forge python=3.11 sweet-chem-o-mine
 conda activate scom
 scom
 ```
-
-Until that submission is accepted, use the source installation instructions
-below.
 
 ## Install from a Clone
 
@@ -162,7 +170,4 @@ configuration and build instructions are stored in
 [`packaging/windows/README.md`](packaging/windows/README.md).
 
 Managed computers may block newly generated unsigned executables. In that
-case, continue using the installed Python-package launcher, `scom`, or build
-the portable application through the **Build Windows Portable App** workflow
-on GitHub Actions, which supplies a downloadable Windows artifact without
-building an executable on the local managed computer.
+case, continue using the installed Python-package launcher, `scom`.

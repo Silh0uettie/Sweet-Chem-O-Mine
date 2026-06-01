@@ -43,11 +43,10 @@ tests:
       imports:
         - sweet_chem_o_mine
         - sweet_chem_o_mine.analysis
-        - sweet_chem_o_mine.main_window
+        - sweet_chem_o_mine.app
         - sweet_chem_o_mine.project_file
       python_version:
         - ${{ python_min }}.*
-        - "*"
       pip_check: true
 
 about:
